@@ -1,0 +1,3 @@
+imageio
+imagecodecs
+matplotlib
