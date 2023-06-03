@@ -21,6 +21,8 @@ class RandomPatchesDataset(IterableDataset):
         self.masks_dir = Path(masks_dir)
 
         self.image_names = [file.name for file in self.images_dir.glob('*.tif')]
+
+        print(f'Succesfully loaded {len(self.image_names)} images')
         
         self.patch_size = patch_size
         self.rng = np.random.default_rng(seed)
@@ -52,7 +54,7 @@ class RandomPatchesDataset(IterableDataset):
 
         random_mask_crop[random_mask_crop > 0] = 1
         
-        return random_image_crop, random_mask_crop
+        return random_image_crop[..., np.newaxis], random_mask_crop[..., np.newaxis]
 
     def __iter__(self) -> RandomPatchesDataset:
         return self
