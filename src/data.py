@@ -54,7 +54,8 @@ class RandomPatchesDataset(IterableDataset):
 
         random_mask_crop[random_mask_crop > 0] = 1
         
-        return random_image_crop[..., np.newaxis], random_mask_crop[..., np.newaxis]
+        return (random_image_crop[np.newaxis, ...].astype(float),
+                random_mask_crop[np.newaxis, ...].astype(float))
 
     def __iter__(self) -> RandomPatchesDataset:
         return self
