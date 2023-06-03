@@ -13,7 +13,7 @@ class RandomPatchesDataset(IterableDataset):
         images_dir: Union[Path, str],
         masks_dir: Union[Path, str],
         patch_size: tuple[int, int] = (256, 256),
-        rng: Optional[Union[np.random.Generator, int]] = None,
+        seed: Optional[Union[np.random.Generator, int]] = None,
         ) -> None:
 
         super().__init__()
@@ -23,7 +23,7 @@ class RandomPatchesDataset(IterableDataset):
         self.image_names = [file.name for file in self.images_dir.glob('*.tif')]
         
         self.patch_size = patch_size
-        self.rng = np.random.default_rng(rng)
+        self.rng = np.random.default_rng(seed)
 
     def __next__(self) -> np.ndarray:
         random_name = self.rng.choice(self.image_names)
