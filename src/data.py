@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import imageio.v2 as imageio
 
-from torch.utils.data import IterableDataset
+from torch.utils.data import IterableDataset, Dataset
 from typing import Union, Optional
 from pathlib import Path
 
@@ -34,8 +34,8 @@ class RandomPatchesDataset(IterableDataset):
         self.rng = np.random.default_rng(seed)
 
     def __next__(self) -> np.ndarray:
-        idx = self.rng.choice(len(self.data))
-        random_image, random_mask = self.data[idx]
+        index = self.rng.choice(len(self.data))
+        random_image, random_mask = self.data[index]
         if len(random_image.shape) == 3:
             # Some images have three channels instead of one, but they all contain the same values
             assert(
@@ -63,3 +63,44 @@ class RandomPatchesDataset(IterableDataset):
 
     def __iter__(self) -> RandomPatchesDataset:
         return self
+
+class FullImageDataset(Dataset):
+    def __init__(
+        self,
+        images_dir: Union[Path, str],
+        masks_dir: Union[Path, str],
+        ) -> None:
+
+        super().__init__()
+        images_dir = Path(images_dir)
+        masks_dir = Path(masks_dir)
+
+        image_names = [file.name for file in images_dir.glob('*.tif')]
+
+        self.data = []
+        for name in image_names:
+            image = imageio.imread(images_dir / name)
+            mask = imageio.imread(masks_dir / name)
+            self.data.append((image, mask))
+
+        print(f'Succesfully loaded {len(image_names)} images')
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
+        img, mask = self.data[index]
+        if len(img.shape) == 3:
+            # Some images have three channels instead of one, but they all contain the same values
+            assert(
+                np.all(img[:, :, 0] == img[:, :, 1])
+                and np.all(img[:, :, 0] == img[:, :, 2])
+            )
+            img = img[:, :, 0]
+
+        mask[mask > 0] = 1
+        
+        return (img[np.newaxis, ...].astype(float),
+                mask[np.newaxis, ...].astype(float))
+    
+    
