@@ -17,21 +17,25 @@ class RandomPatchesDataset(IterableDataset):
         ) -> None:
 
         super().__init__()
-        self.images_dir = Path(images_dir)
-        self.masks_dir = Path(masks_dir)
+        images_dir = Path(images_dir)
+        masks_dir = Path(masks_dir)
 
-        self.image_names = [file.name for file in self.images_dir.glob('*.tif')]
+        image_names = [file.name for file in images_dir.glob('*.tif')]
 
-        print(f'Succesfully loaded {len(self.image_names)} images')
+        self.data = []
+        for name in image_names:
+            image = imageio.imread(images_dir / name)
+            mask = imageio.imread(masks_dir / name)
+            self.data.append((image, mask))
+
+        print(f'Succesfully loaded {len(image_names)} images')
         
         self.patch_size = patch_size
         self.rng = np.random.default_rng(seed)
 
     def __next__(self) -> np.ndarray:
-        random_name = self.rng.choice(self.image_names)
-        random_image = imageio.imread(self.images_dir / random_name)
-        random_mask = imageio.imread(self.masks_dir / random_name)
-
+        idx = self.rng.choice(len(self.data))
+        random_image, random_mask = self.data[idx]
         if len(random_image.shape) == 3:
             # Some images have three channels instead of one, but they all contain the same values
             assert(
