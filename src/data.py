@@ -7,15 +7,17 @@ from torch.utils.data import IterableDataset, Dataset
 from typing import Union, Optional
 from pathlib import Path
 
+
 class RandomPatchesDataset(IterableDataset):
     def __init__(
-        self,
-        images_dir: Union[Path, str],
-        masks_dir: Union[Path, str],
-        patch_size: tuple[int, int] = (256, 256),
-        seed: Optional[Union[np.random.Generator, int]] = None,
-        binarize_mask: bool = False,
-        ) -> None:
+            self,
+            images_dir: Union[Path, str],
+            masks_dir: Union[Path, str],
+            patch_size: tuple[int, int] = (256, 256),
+            seed: Optional[Union[np.random.Generator, int]] = None,
+            max_iter_in_epoch: Optional[int] = 50,
+            binarize_mask: bool = False,
+    ) -> None:
 
         super().__init__()
         images_dir = Path(images_dir)
@@ -34,29 +36,36 @@ class RandomPatchesDataset(IterableDataset):
         self.patch_size = patch_size
         self.rng = np.random.default_rng(seed)
         self.binarize_mask = binarize_mask
+        self.i = 0
+        self.max_iter = max_iter_in_epoch
 
     def __next__(self) -> np.ndarray:
+        if self.i > self.max_iter_in_epoch:
+          self.i = 0
+          raise StopIteration
         index = self.rng.choice(len(self.data))
         random_image, random_mask = self.data[index]
+
         if len(random_image.shape) == 3:
             # Some images have three channels instead of one, but they all contain the same values
-            assert(
-                np.all(random_image[:, :, 0] == random_image[:, :, 1])
-                and np.all(random_image[:, :, 0] == random_image[:, :, 2])
+            assert (
+                    np.all(random_image[:, :, 0] == random_image[:, :, 1])
+                    and np.all(random_image[:, :, 0] == random_image[:, :, 2])
             )
             random_image = random_image[:, :, 0]
-        
+
         crop_y = np.random.randint(0, random_image.shape[0] - self.patch_size[0])
         crop_x = np.random.randint(0, random_image.shape[1] - self.patch_size[1])
 
         random_image_crop = random_image[
-            crop_y: crop_y + self.patch_size[0],
-            crop_x: crop_x + self.patch_size[1],
-            ]
+                            crop_y: crop_y + self.patch_size[0],
+                            crop_x: crop_x + self.patch_size[1],
+                            ]
         random_mask_crop = random_mask[
-            crop_y: crop_y + self.patch_size[0],
-            crop_x: crop_x + self.patch_size[1],
-            ]
+                           crop_y: crop_y + self.patch_size[0],
+                           crop_x: crop_x + self.patch_size[1],
+                           ]
+        self._i += 1
 
         if self.binarize_mask:
             random_mask_crop[random_mask_crop > 0] = 1

@@ -1,14 +1,17 @@
+from typing import Dict, Any, Optional
 
 import pytorch_lightning as pl
-from typing import Dict, Any, Optional
+from backbones_unet.model.unet import Unet
 from pytorch_toolbelt.losses import BinaryFocalLoss
-from ternausnet.models import UNet11
 from torch.optim import Adam, lr_scheduler
 
+
+# TODO: Monitor more meaningful metrics
 
 class UNetLit(pl.LightningModule):
     """ A pytorch lightning wrapper for UNet11.
     """
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initializes the model with hyperparameters.
 
@@ -27,7 +30,11 @@ class UNetLit(pl.LightningModule):
             self.step_size = config["step_size"]
             self.gamma = config["gamma"]
 
-        self.model = UNet11(pretrained=True)
+        self.model = Unet(
+            backbone='efficientnet_b0',  # backbone network name, see https://huggingface.co/docs/timm/results
+            in_channels=1,  # input channels (1 for gray-scale images, 3 for RGB, etc.)
+            num_classes=1,  # output channels (number of classes in your dataset)
+        )
         self.loss_fn = BinaryFocalLoss()
 
     def forward(self, x):
@@ -41,6 +48,7 @@ class UNetLit(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+        x = x.float()
         outputs = self(x)
         loss = self.loss_fn(outputs, y)
         preds = (outputs > 0.5).float()
@@ -50,6 +58,7 @@ class UNetLit(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
+        x = x.float()
         outputs = self(x)
         loss = self.loss_fn(outputs, y)
         preds = (outputs > 0.5).float()
@@ -59,6 +68,7 @@ class UNetLit(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x, y = batch
+        x = x.float()
         outputs = self(x)
         loss = self.loss_fn(outputs, y)
         preds = (outputs > 0.5).float()
