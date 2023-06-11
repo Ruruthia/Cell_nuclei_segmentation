@@ -14,6 +14,7 @@ class RandomPatchesDataset(IterableDataset):
         masks_dir: Union[Path, str],
         patch_size: tuple[int, int] = (256, 256),
         seed: Optional[Union[np.random.Generator, int]] = None,
+        binarize_mask: bool = False,
         ) -> None:
 
         super().__init__()
@@ -27,11 +28,12 @@ class RandomPatchesDataset(IterableDataset):
             image = imageio.imread(images_dir / name)
             mask = imageio.imread(masks_dir / name)
             self.data.append((image, mask))
-
+        
         print(f'Succesfully loaded {len(image_names)} images')
         
         self.patch_size = patch_size
         self.rng = np.random.default_rng(seed)
+        self.binarize_mask = binarize_mask
 
     def __next__(self) -> np.ndarray:
         index = self.rng.choice(len(self.data))
@@ -56,7 +58,8 @@ class RandomPatchesDataset(IterableDataset):
             crop_x: crop_x + self.patch_size[1],
             ]
 
-        random_mask_crop[random_mask_crop > 0] = 1
+        if self.binarize_mask:
+            random_mask_crop[random_mask_crop > 0] = 1
         
         return (random_image_crop[np.newaxis, ...].astype(float),
                 random_mask_crop[np.newaxis, ...].astype(float))
@@ -69,6 +72,7 @@ class FullImageDataset(Dataset):
         self,
         images_dir: Union[Path, str],
         masks_dir: Union[Path, str],
+        binarize_mask: bool = False,
         ) -> None:
 
         super().__init__()
@@ -82,6 +86,8 @@ class FullImageDataset(Dataset):
             image = imageio.imread(images_dir / name)
             mask = imageio.imread(masks_dir / name)
             self.data.append((image, mask))
+
+        self.binarize_mask = binarize_mask
 
         print(f'Succesfully loaded {len(image_names)} images')
 
@@ -98,7 +104,8 @@ class FullImageDataset(Dataset):
             )
             img = img[:, :, 0]
 
-        mask[mask > 0] = 1
+        if self.binarize_mask:
+            mask[mask > 0] = 1
         
         return (img[np.newaxis, ...].astype(float),
                 mask[np.newaxis, ...].astype(float))
