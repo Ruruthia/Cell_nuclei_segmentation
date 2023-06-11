@@ -9,6 +9,7 @@
 *.DS_Store*
 *.log*
 *history.txt*
+.idea
 
 # Distribution / packaging
 .Python
